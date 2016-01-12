@@ -50,6 +50,8 @@ int camfd;
 //DBN dbn;
 LogisticRegression logisticRegression;
 double results[NR_OF_LABELS];
+ResizedDigit resizedSymbolsToSave[32];
+int noOfResizedSymbols;
 
 void Redraw(void);
 void Resize(int width, int height);
@@ -57,7 +59,26 @@ ResizedDigit resizeDigit(int massCenterX, int massCenterY, int width, int height
 void drawResizedDigit(ResizedDigit digit, int digitNumber, int width, int height);
 int capture();
 int findAllInSet(float radius, int x, int y, int* data);
+char getSymbolFromCommandLine();
 
+void printImageInt(int* image) {
+
+    for (int i = 0; i < 28; ++i) {
+        for (int j = 0; j < 28; ++j) {
+            printf("%d ", image[i*28 + j]);
+        }
+        printf("\n");
+    }
+}
+
+void normalize(int* image) {
+    for (int i = 0; i < 28; ++i) {
+        for (int j = 0; j < 28; ++j) {
+            if (image[i*28 + j] > 0) { image[i*28 + j] = 1; }
+            else { image[i*28 + j] = 0; }
+        }
+    }
+}
 
 static int xioctl(int fd, int request, void *arg)
 {
@@ -501,6 +522,8 @@ void processFrame() {
 
         //resize digit and display it on the screen
         resizedDigitsArray[i-1] = resizeDigit(center[0], center[1], (int)(center[2]*1.5), (int)(center[3]*1.5), RESIZED_WIDTH, RESIZED_HEIGHT);
+        if (i-1<32)
+            resizedSymbolsToSave[i-1] = resizeDigit(center[0], center[1], (int)(center[2]*1.5), (int)(center[3]*1.5), RESIZED_WIDTH, RESIZED_HEIGHT);
         drawResizedDigit(resizedDigitsArray[i-1], i-1, RESIZED_WIDTH, RESIZED_HEIGHT);
 
         predict(&logisticRegression,  resizedDigitsArray[i-1].getPixelArray(), results);
@@ -514,7 +537,8 @@ void processFrame() {
         free(center);
 
     }
-    printf("\n\n");
+    noOfResizedSymbols = setsNo;
+    // printf("\n\n");
 
 
 
@@ -523,7 +547,7 @@ void processFrame() {
 void drawResizedDigit(ResizedDigit digit, int digitNumber, int width, int height) {
     for(int x=0; x<width; x++){
         for (int y = 0; y < height; ++y) {
-            setBit(x+digitNumber*width,y, digit.getValueOfPixel(x,y), BitmapBits);
+            setBit(y, x+digitNumber*width, digit.getValueOfPixel(x, y), BitmapBits);
         }
     }
 }
@@ -549,7 +573,7 @@ ResizedDigit resizeDigit(int massCenterX, int massCenterY,
             pixelY = floor(y*y_ratio + leftUpperY);
 
             //set value of new pixel as value of "closest neighbour" in original image
-            resizedDigit.setDigitPixel(x, y, (int)getfBit(pixelX, pixelY, workingBmp));
+            resizedDigit.setDigitPixel(y, x, (int)getfBit(pixelX, pixelY, workingBmp));
         }
     }
 
@@ -564,9 +588,15 @@ int capture() {
 
 //function run when everything is ready
 void updateImg(void) {
-    int refreshTime = 5000;
+    int refreshTime = 200;
     usleep(refreshTime);
     Redraw();
+}
+
+char getSymbolFromCommandLine() {
+    char chr;
+    scanf("%c", &chr);
+    return chr;
 }
 
 int initBitmapStructs() {
@@ -591,42 +621,42 @@ void freeBitmapStructs() {
 /* O - Exit status */
 /* I - Number of command-line arguments */
 /* I - Command-line arguments */
- int main(int  argc, char *argv[])
- {
+int main(int  argc, char *argv[]) 
+{
 
-     if (initBitmapStructs()) return 1;
+    if (initBitmapStructs()) return 1;
 
-     glutInit(&argc, argv);
-     glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
-     glutInitWindowSize(Width, Height);
-     glutCreateWindow("DRD - Digit Recognition Device");
-     glutReshapeFunc(Resize);
-     glutDisplayFunc(Redraw);
-     glutIdleFunc(updateImg);
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+    glutInitWindowSize(Width, Height);
+    glutCreateWindow("DRD - Digit Recognition Device");
+    glutReshapeFunc(Resize);
+    glutDisplayFunc(Redraw);
+    glutIdleFunc(updateImg);
 
- //    int train_N = 20000;
- //    int n_ins = 28*28;
- //    int n_outs = 10;
- //    int hidden_layer_sizes[] = {500, 500, 2000};
- //    int n_layers = sizeof(hidden_layer_sizes) / sizeof(hidden_layer_sizes[0]);
+//    int train_N = 20000;
+//    int n_ins = 28*28;
+//    int n_outs = 10;
+//    int hidden_layer_sizes[] = {500, 500, 2000};
+//    int n_layers = sizeof(hidden_layer_sizes) / sizeof(hidden_layer_sizes[0]);
 
- //    loadDBNModel(&dbn, train_N, n_ins, hidden_layer_sizes, n_outs, n_layers);
+//    loadDBNModel(&dbn, train_N, n_ins, hidden_layer_sizes, n_outs, n_layers);
 
-     int trainingSetSize = 50000;
-     int inputDimension = 28 * 28;
-     int nrOfClasses = 10;
+    int trainingSetSize = 50000;
+    int inputDimension = 28 * 28;
+    int nrOfClasses = 10;
 
-     buildLogisticRegressionModel(&logisticRegression, trainingSetSize, inputDimension, nrOfClasses);
-     loadWeightsLR(&logisticRegression);
+    buildLogisticRegressionModel(&logisticRegression, trainingSetSize, inputDimension, nrOfClasses);
+    loadWeightsLR(&logisticRegression);
 
-     getImg();
+    getImg();
+    
+    glutMainLoop();
+    
+    freeBitmapStructs();
 
-     glutMainLoop();
-
-     freeBitmapStructs();
-
-     return 0;
- }
+    return 0;
+}
 
 void
 Redraw(void) {
