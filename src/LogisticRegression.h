@@ -22,6 +22,7 @@ void predict(LogisticRegression*, int*, double*);
 void testLogisticRegression(void);
 void loadWeightsLR(LogisticRegression*);
 int chooseBest(double[10]);
+void printImageInt(int[28][28]);
 
 #  ifdef __cplusplus
 }

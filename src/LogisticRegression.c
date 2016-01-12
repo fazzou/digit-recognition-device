@@ -8,11 +8,13 @@
 #include <time.h>
 #include "TrainMnist.h"
 
-#define USE_MNIST_LOADER
-#define MNIST_DOUBLE
-#include "MnistLoader.h"
+//#define USE_MNIST_LOADER
+//#define MNIST_DOUBLE
+//#include "MnistLoader.h"
 
 #include "LogisticRegression.h"
+
+#define NR_OF_LABELS 10
 
 void printImage(double image[28][28]) {
 
@@ -28,7 +30,9 @@ void printImageInt(int image[28][28]) {
 
     for (int i = 0; i < 28; ++i) {
         for (int j = 0; j < 28; ++j) {
-            printf("%d ", image[i][j]);
+            if (image[i][j] == 0) printf(" ");
+            else printf("o");
+//            printf("%d ", image[i][j]);
         }
         printf("\n");
     }
@@ -231,14 +235,14 @@ void loadLayerLR(char *fileName, double **W, int n, int m) {
 void loadBLR(char *fileName, double *b, int n) {
     FILE *f = fopen(fileName, "r");
 
-    double tabledB[n];
-    fread(tabledB, sizeof(double), (size_t) n, f);
+//    double tabledB[n];
+    fread(b, sizeof(double), (size_t) n, f);
 
 //    printf("\n%s\n", fileName);
-    for (int i = 0; i < n; ++i) {
+//    for (int i = 0; i < n; ++i) {
 //        printf("%f ",tabledB[i]);
-        tabledB[i] = b[i];
-    }
+//        tabledB[i] = b[i];
+//    }
 //    printf("\n");
 
     fclose(f);
@@ -255,269 +259,284 @@ void loadWeightsLR(LogisticRegression *logisticRegression) {
     loadBLR(fileName, logisticRegression->b, logisticRegression->outputDimension);
 }
 
-//TODO Remove
-void trainLogisticRegression() {
-
-    double learningRate = 0.1;
-    int nrOfEpochs = 500;
-
-    int trainingSetSize = 6;
-    int inputDimension = 6;
-    int nrOfClasses = 2;
-
-    // training data
-    //INFO keep sizes in sync with variables: trainingSetSize & inputDimension
-    int train_X[6][6] = {
-            {1, 1, 1, 0, 0, 0},
-            {1, 0, 1, 0, 0, 0},
-            {1, 1, 1, 0, 0, 0},
-            {0, 0, 1, 1, 1, 0},
-            {0, 0, 1, 1, 0, 0},
-            {0, 0, 1, 1, 1, 0}
-    };
-
-    //INFO keep sizes in sync with variables: trainingSetSize & inputDimension
-    int train_Y[6][6] = {
-            {1, 0},
-            {1, 0},
-            {1, 0},
-            {0, 1},
-            {0, 1},
-            {0, 1}
-    };
-
-    // construct LogisticRegression
-    LogisticRegression classifier;
-    buildLogisticRegressionModel(&classifier, trainingSetSize, inputDimension, nrOfClasses);
-
-    // train
-    for(int epoch=0; epoch < nrOfEpochs; epoch++) {
-        for(int i=0; i < trainingSetSize; i++) {
-            train(&classifier, train_X[i], train_Y[i], learningRate);
-        }
-//        learningRate *= 0.99;
-    }
-
-    persistWeightsLR(&classifier);
-
-    freeLogisticRegressionModel(&classifier);
-}
-
-//TODO Remove
-void trainLogisticRegressionMnist() {
-
-    mnist_data *data;
-    unsigned int cnt;
-    int ret;
-
-    if ((ret = mnist_load("../data/train-images.idx3-ubyte", "../data/train-labels.idx1-ubyte", &data, &cnt))) {
-        printf("An error occured: %d\n", ret);
-    } else {
-        printf("image count: %d\n", cnt);
-
-//        printImage(data[0].data);
-//        printf("%d", data[0].label);
-
-        int nrOfInputs = 50000;
-        static int inputData[50000][28 * 28];
-        for (int k = 0; k < nrOfInputs; ++k) {
-            for (int i = 0; i < 28; ++i) {
-                for (int j = 0; j < 28; ++j) {
-                    inputData[k][i * 28 + j] = (int) (data[k].data[i][j] * 255);
-                }
-            }
-        }
-
-        static int y_train[50000][10];
-        for (int i = 0; i < nrOfInputs; ++i) {
-            for (int j = 0; j < 10; ++j) {
-                if (data[i].label == j) {
-                    y_train[i][j] = 1;
-                } else {
-                    y_train[i][j] = 0;
-                }
-            }
-        }
-
-//        for (int i = 0; i < nrOfInputs; ++i) {
-//            printf("\nlabel: %d\n", data[i].label);
-//            for (int j = 0; j < 10; ++j) {
-//                printf("%f ", y_train[i][j]);
-//            }
-//        }
-//        for (int i = 0; i < 60000; ++i) {
-//            printf("%d ", y_train[i]);
-//        }
-
-        clock_t start = clock();
-        // training
-
-        srand(0);
-
-        double learningRate = 0.1;
-        int nrOfEpochs = 100;
-
-        int trainingSetSize = nrOfInputs;
-        int inputDimension = 28 * 28;
-        int nrOfClasses = 10;
-
-
-        // construct LogisticRegression
-        LogisticRegression classifier;
-        buildLogisticRegressionModel(&classifier, trainingSetSize, inputDimension, nrOfClasses);
-
-        // train
-        for (int epoch = 0; epoch < nrOfEpochs; epoch++) {
-//            printf("%d", epoch);
-            for (int i = 0; i < trainingSetSize; i++) {
-                train(&classifier, inputData[i], y_train[i], learningRate);
-            }
-//        learningRate *= 0.99;
-        }
-
-        persistWeightsLR(&classifier);
-
-        freeLogisticRegressionModel(&classifier);
-        free(data);
-
-        clock_t end = clock();
-        float seconds = (float) (end - start) / CLOCKS_PER_SEC;
-        printf("Trained for: %f seconds", seconds);
-    }
-}
-
-//TODO Remove
-void testLogisticRegression() {
-
-    int trainingSetSize = 6;
-    int testingSetSize = 3;
-    int inputDimension = 6;
-    int nrOfClasses = 2;
-
-    // construct LogisticRegression
-    LogisticRegression classifier;
-    buildLogisticRegressionModel(&classifier, trainingSetSize, inputDimension, nrOfClasses);
-    loadWeightsLR(&classifier);
-
-    // test data
-    //INFO keep sizes in sync with variables: testingSetSize & inputDimension
-    int test_X[3][6] = {
-            {1, 0, 1, 0, 0, 0},
-            {0, 0, 1, 1, 1, 0},
-            {1, 1, 1, 1, 0, 0}
-    };
-
-    //INFO keep sizes in sync with variables: testingSetSize
-    double test_Y[3][2];
-
-    // test
-    for(int i = 0; i < testingSetSize; ++i) {
-        predict(&classifier, test_X[i], test_Y[i]);
-        for (int j = 0; j < nrOfClasses; ++j) {
-            printf("%f ", test_Y[i][j]);
-        }
-        printf("\n");
-    }
-
-    freeLogisticRegressionModel(&classifier);
-}
-
-int chooseBest(double resultsOneHotEncoding[10]) {
-    for (int j = 0; j < 10; ++j) {
-        if (resultsOneHotEncoding[j] > 0.5) {
-            return j;
-        }
-    }
-    return -1;
-}
-
-
-//TODO Remove
-void testLogisticRegressionMnist() {
-
-
-    mnist_data *data;
-    unsigned int cnt;
-    int ret;
-
-    if ((ret = mnist_load("../data/train-images.idx3-ubyte", "../data/train-labels.idx1-ubyte", &data, &cnt))) {
-        printf("An error occured: %d\n", ret);
-    } else {
-        printf("image count: %d\n", cnt);
-
-//        printImage(data[0].data);
-//        printf("%d", data[0].label);
-
-        int trainingSetSize = 50000;
-        int inputDimension = 28 * 28;
-        int nrOfClasses = 10;
-
-        // construct LogisticRegression
-        LogisticRegression classifier;
-        buildLogisticRegressionModel(&classifier, trainingSetSize, inputDimension, nrOfClasses);
-        loadWeightsLR(&classifier);
-
-
-        int testingSetSize = 60000;
-        static int inputData[60000][28 * 28];
-        for (int k = 0; k < testingSetSize; ++k) {
-            for (int i = 0; i < 28; ++i) {
-                for (int j = 0; j < 28; ++j) {
-                    inputData[k][i * 28 + j] = (int) (data[k].data[i][j] * 255);
-                }
-            }
-        }
-
-        static int y_train[60000][10];
-        for (int i = 0; i < testingSetSize; ++i) {
-            for (int j = 0; j < 10; ++j) {
-                if (data[i].label == j) {
-                    y_train[i][j] = 1;
-                } else {
-                    y_train[i][j] = 0;
-                }
-            }
-        }
-
-//        for (int i = 0; i < testingSetSize; ++i) {
-//            printf("\nlabel: %d\n", data[i].label);
-//            for (int j = 0; j < 10; ++j) {
-//                printf("%f ", y_train[i][j]);
-//            }
-//        }
-//        for (int i = 0; i < 60000; ++i) {
-//            printf("%d ", y_train[i]);
-//        }
-
-
-        double test_Y[60000][10];
-
-        // test
-        int valid = 0;
-        int result = -1;
-//    for(int i = 0; i < testingSetSize; ++i) {
-        for (int i = 50000; i < 50002; ++i) {
-            predict(&classifier, inputData[i], test_Y[i]);
-            for (int j = 0; j < nrOfClasses; ++j) {
-                printf("%f %d\n", test_Y[i][j], y_train[i][j]);
-            }
-            result = chooseBest(test_Y[i]);
-            if (result == data[i].label) {
-                valid++;
-            }
-//            printf("%d:\t%d\t%d", i, data[i].label, result);
-//            printf("\n");
-        }
-
-        printf("Accuracy: %f", ((float) valid)/10000);
-        freeLogisticRegressionModel(&classifier);
-
-        free(data);
-    }
-}
+////TODO Remove
+//void trainLogisticRegression() {
 //
+//    double learningRate = 0.1;
+//    int nrOfEpochs = 500;
+//
+//    int trainingSetSize = 6;
+//    int inputDimension = 6;
+//    int nrOfClasses = 2;
+//
+//    // training data
+//    //INFO keep sizes in sync with variables: trainingSetSize & inputDimension
+//    int train_X[6][6] = {
+//            {1, 1, 1, 0, 0, 0},
+//            {1, 0, 1, 0, 0, 0},
+//            {1, 1, 1, 0, 0, 0},
+//            {0, 0, 1, 1, 1, 0},
+//            {0, 0, 1, 1, 0, 0},
+//            {0, 0, 1, 1, 1, 0}
+//    };
+//
+//    //INFO keep sizes in sync with variables: trainingSetSize & inputDimension
+//    int train_Y[6][6] = {
+//            {1, 0},
+//            {1, 0},
+//            {1, 0},
+//            {0, 1},
+//            {0, 1},
+//            {0, 1}
+//    };
+//
+//    // construct LogisticRegression
+//    LogisticRegression classifier;
+//    buildLogisticRegressionModel(&classifier, trainingSetSize, inputDimension, nrOfClasses);
+//
+//    // train
+//    for(int epoch=0; epoch < nrOfEpochs; epoch++) {
+//        for(int i=0; i < trainingSetSize; i++) {
+//            train(&classifier, train_X[i], train_Y[i], learningRate);
+//        }
+////        learningRate *= 0.99;
+//    }
+//
+//    persistWeightsLR(&classifier);
+//
+//    freeLogisticRegressionModel(&classifier);
+//}
+//
+////TODO Remove
+//void trainLogisticRegressionMnist() {
+//
+//    mnist_data *data;
+//    unsigned int cnt;
+//    int ret;
+//
+//    if ((ret = mnist_load("../data/train-images.idx3-ubyte", "../data/train-labels.idx1-ubyte", &data, &cnt))) {
+//        printf("An error occured: %d\n", ret);
+//    } else {
+//        printf("image count: %d\n", cnt);
+//
+////        printImage(data[0].data);
+////        printf("%d", data[0].label);
+//
+//        int nrOfInputs = 50000;
+//        static int inputData[50000][28 * 28];
+//        for (int k = 0; k < nrOfInputs; ++k) {
+//            for (int i = 0; i < 28; ++i) {
+//                for (int j = 0; j < 28; ++j) {
+//                    inputData[k][i * 28 + j] = (int) (data[k].data[i][j] * 255);
+//                }
+//            }
+//        }
+//
+//        static int y_train[50000][10];
+//        for (int i = 0; i < nrOfInputs; ++i) {
+//            for (int j = 0; j < 10; ++j) {
+//                if (data[i].label == j) {
+//                    y_train[i][j] = 1;
+//                } else {
+//                    y_train[i][j] = 0;
+//                }
+//            }
+//        }
+//
+////        for (int i = 0; i < nrOfInputs; ++i) {
+////            printf("\nlabel: %d\n", data[i].label);
+////            for (int j = 0; j < 10; ++j) {
+////                printf("%f ", y_train[i][j]);
+////            }
+////        }
+////        for (int i = 0; i < 60000; ++i) {
+////            printf("%d ", y_train[i]);
+////        }
+//
+//        clock_t start = clock();
+//        // training
+//
+//        srand(0);
+//
+//        double learningRate = 0.1;
+//        int nrOfEpochs = 100;
+//
+//        int trainingSetSize = nrOfInputs;
+//        int inputDimension = 28 * 28;
+//        int nrOfClasses = 10;
+//
+//        // construct LogisticRegression
+//        LogisticRegression classifier;
+//        buildLogisticRegressionModel(&classifier, trainingSetSize, inputDimension, nrOfClasses);
+//
+//        // train
+//        for (int epoch = 0; epoch < nrOfEpochs; epoch++) {
+//            printf("%d", epoch);
+//            for (int i = 0; i < trainingSetSize; i++) {
+//                train(&classifier, inputData[i], y_train[i], learningRate);
+//            }
+////        learningRate *= 0.99;
+//        }
+//
+//        persistWeightsLR(&classifier);
+//
+//        freeLogisticRegressionModel(&classifier);
+//        free(data);
+//
+//        clock_t end = clock();
+//        float seconds = (float) (end - start) / CLOCKS_PER_SEC;
+//        printf("Trained for: %f seconds", seconds);
+//    }
+//}
+//
+////TODO Remove
+//void testLogisticRegression() {
+//
+//    int trainingSetSize = 6;
+//    int testingSetSize = 3;
+//    int inputDimension = 6;
+//    int nrOfClasses = 2;
+//
+//    // construct LogisticRegression
+//    LogisticRegression classifier;
+//    buildLogisticRegressionModel(&classifier, trainingSetSize, inputDimension, nrOfClasses);
+//    loadWeightsLR(&classifier);
+//
+//    // test data
+//    //INFO keep sizes in sync with variables: testingSetSize & inputDimension
+//    int test_X[3][6] = {
+//            {1, 0, 1, 0, 0, 0},
+//            {0, 0, 1, 1, 1, 0},
+//            {1, 1, 1, 1, 0, 0}
+//    };
+//
+//    //INFO keep sizes in sync with variables: testingSetSize
+//    double test_Y[3][2];
+//
+//    // test
+//    for(int i = 0; i < testingSetSize; ++i) {
+//        predict(&classifier, test_X[i], test_Y[i]);
+//        for (int j = 0; j < nrOfClasses; ++j) {
+//            printf("%f ", test_Y[i][j]);
+//        }
+//        printf("\n");
+//    }
+//
+//    freeLogisticRegressionModel(&classifier);
+//}
+//
+//int chooseBest(double resultsOneHotEncoding[10]) {
+//    for (int j = 0; j < 10; ++j) {
+//        if (resultsOneHotEncoding[j] > 0.5) {
+//            return j;
+//        }
+//    }
+//    return -1;
+//}
+//
+//
+////TODO Remove
+//void testLogisticRegressionMnist() {
+//
+//
+//    mnist_data *data;
+//    unsigned int cnt;
+//    int ret;
+//
+//    if ((ret = mnist_load("../data/train-images.idx3-ubyte", "../data/train-labels.idx1-ubyte", &data, &cnt))) {
+//        printf("An error occured: %d\n", ret);
+//    } else {
+//        printf("image count: %d\n", cnt);
+//
+////        printImage(data[0].data);
+////        printf("%d", data[0].label);
+//
+//        int trainingSetSize = 50000;
+//        int inputDimension = 28 * 28;
+//        int nrOfClasses = 10;
+//
+//        // construct LogisticRegression
+//        LogisticRegression classifier;
+//        buildLogisticRegressionModel(&classifier, trainingSetSize, inputDimension, nrOfClasses);
+//        loadWeightsLR(&classifier);
+//
+//
+//        int testingSetSize = 60000;
+//        static int inputData[60000][28 * 28];
+//        for (int k = 0; k < testingSetSize; ++k) {
+//            for (int i = 0; i < 28; ++i) {
+//                for (int j = 0; j < 28; ++j) {
+//                    inputData[k][i * 28 + j] = (int) (data[k].data[i][j] * 255);
+//                }
+//            }
+//        }
+//
+//        static int y_train[60000][10];
+//        for (int i = 0; i < testingSetSize; ++i) {
+//            for (int j = 0; j < 10; ++j) {
+//                if (data[i].label == j) {
+//                    y_train[i][j] = 1;
+//                } else {
+//                    y_train[i][j] = 0;
+//                }
+//            }
+//        }
+//
+////        for (int i = 0; i < testingSetSize; ++i) {
+////            printf("\nlabel: %d\n", data[i].label);
+////            for (int j = 0; j < 10; ++j) {
+////                printf("%f ", y_train[i][j]);
+////            }
+////        }
+////        for (int i = 0; i < 60000; ++i) {
+////            printf("%d ", y_train[i]);
+////        }
+//
+//
+//        double test_Y[60000][10];
+//
+//        // test
+//        int valid = 0;
+//        int misclassified[NR_OF_LABELS];
+//        int result = -1;
+//
+//        for (int i = 0; i < NR_OF_LABELS; ++i) {
+//            misclassified[i] = 0;
+//        }
+//
+////    for(int i = 0; i < testingSetSize; ++i) {
+//        for (int i = 50000; i < 60000; ++i) {
+//            predict(&classifier, inputData[i], test_Y[i]);
+////            for (int j = 0; j < nrOfClasses; ++j) {
+////                printf("%f %d\n", test_Y[i][j], y_train[i][j]);
+////            }
+//            result = chooseBest(test_Y[i]);
+//            if (result == data[i].label) {
+//                valid++;
+//            } else {
+////                if (data[i].label == 3) {
+////                    printImageInt(inputData[i]);
+////                }
+//
+////            printf("%d:\t%d\t%d", i, data[i].label, result);
+////            printf("\n");
+//            ++misclassified[data[i].label];
+//        }
+//    }
+//
+//        for (int i = 0; i < NR_OF_LABELS; ++i) {
+//            printf("Misclassified with %d:\t%d\n", i, misclassified[i]);
+//        }
+//
+//        printf("Accuracy: %f", ((float) valid)/10000);
+//        freeLogisticRegressionModel(&classifier);
+//
+//        free(data);
+//    }
+//}
+
 //int main() {
-////    trainLogisticRegressionMnist();
+//    trainLogisticRegressionMnist();
 //
 //    testLogisticRegressionMnist();
 //

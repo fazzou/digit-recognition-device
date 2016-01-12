@@ -535,9 +535,10 @@ void processFrame() {
         // for (int j = 0; j < NR_OF_LABELS; ++j) {
         //     printf("%f\n", results[j]);
         // }
+//        printImageInt(resizedDigitsArray[i-1].getPixelArray());
         int result = chooseBest(results);
         printf("%d ", result);
-        
+
         free(center);
 
     }
@@ -664,42 +665,42 @@ void freeBitmapStructs() {
 /* O - Exit status */
 /* I - Number of command-line arguments */
 /* I - Command-line arguments */
-int main(int  argc, char *argv[]) 
-{
-
-    if (initBitmapStructs()) return 1;
-
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
-    glutInitWindowSize(Width, Height);
-    glutCreateWindow("DRD - Digit Recognition Device");
-    glutReshapeFunc(Resize);
-    glutDisplayFunc(Redraw);
-    glutIdleFunc(updateImg);
-
-//    int train_N = 20000;
-//    int n_ins = 28*28;
-//    int n_outs = 10;
-//    int hidden_layer_sizes[] = {500, 500, 2000};
-//    int n_layers = sizeof(hidden_layer_sizes) / sizeof(hidden_layer_sizes[0]);
-
-//    loadDBNModel(&dbn, train_N, n_ins, hidden_layer_sizes, n_outs, n_layers);
-
-    int trainingSetSize = 50000;
-    int inputDimension = 28 * 28;
-    int nrOfClasses = 10;
-
-    buildLogisticRegressionModel(&logisticRegression, trainingSetSize, inputDimension, nrOfClasses);
-    loadWeightsLR(&logisticRegression);
-
-    getImg();
-    
-    glutMainLoop();
-    
-    freeBitmapStructs();
-
-    return 0;
-}
+//int main(int  argc, char *argv[])
+//{
+//
+//    if (initBitmapStructs()) return 1;
+//
+//    glutInit(&argc, argv);
+//    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+//    glutInitWindowSize(Width, Height);
+//    glutCreateWindow("DRD - Digit Recognition Device");
+//    glutReshapeFunc(Resize);
+//    glutDisplayFunc(Redraw);
+//    glutIdleFunc(updateImg);
+//
+////    int train_N = 20000;
+////    int n_ins = 28*28;
+////    int n_outs = 10;
+////    int hidden_layer_sizes[] = {500, 500, 2000};
+////    int n_layers = sizeof(hidden_layer_sizes) / sizeof(hidden_layer_sizes[0]);
+//
+////    loadDBNModel(&dbn, train_N, n_ins, hidden_layer_sizes, n_outs, n_layers);
+//
+//    int trainingSetSize = 50000;
+//    int inputDimension = 28 * 28;
+//    int nrOfClasses = 10;
+//
+//    buildLogisticRegressionModel(&logisticRegression, trainingSetSize, inputDimension, nrOfClasses);
+//    loadWeightsLR(&logisticRegression);
+//
+//    getImg();
+//
+//    glutMainLoop();
+//
+//    freeBitmapStructs();
+//
+//    return 0;
+//}
 
 void
 Redraw(void) {

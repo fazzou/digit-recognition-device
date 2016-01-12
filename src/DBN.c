@@ -10,8 +10,32 @@
 #include "RBM.h"					// here
 #include "LogisticRegression.h"
 
+//static int counterMalloc;
+//static int counterFree;
+//
+//
+//void* my_malloc(size_t size, const char *file, int line, const char *func)
+//{
+//
+//    void *p = malloc(size);
+//    printf ("%d\tAllocated = %s, %i, %s, [%li], %p\n", counterMalloc++, file, line, func, size, p);
+//
+//    /*Link List functionality goes in here*/
+//
+//    return p;
+//}
+//
+//
+//void my_free(void* pointer, const char *file, int line, const char *func)
+//{
+//
+//    printf ("%d\tFreed:\t %s, %i, %s, %p\n", counterFree++, file, line, func, pointer);
+//    free(pointer);
+//}
+//
+//#define malloc(X) my_malloc( X, __FILE__, __LINE__, __FUNCTION__)
+//#define free(X) my_free( X, __FILE__, __LINE__, __FUNCTION__)
 
-static double tabledW[100000000];
 
 void buildDBNModel(DBN *this, int N, \
                     int n_ins, int *hidden_layer_sizes, int n_outs, int n_layers) {
@@ -53,10 +77,13 @@ void buildDBNModel(DBN *this, int N, \
 void loadLayer(char *fileName, double **W, int n, int m) {
     FILE *f = fopen(fileName, "r");
 
+//    printf("\n%s\n", fileName);
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
             fread(&W[i][j], sizeof(double), 1, f);
+//            printf("%f ", W[i][j]);
         }
+//        printf("\n");
     }
     fclose(f);
 }
@@ -64,12 +91,16 @@ void loadLayer(char *fileName, double **W, int n, int m) {
 void loadB(char *fileName, double *b, int n) {
     FILE *f = fopen(fileName, "r");
 
-    double tabledB[n];
-    fread(tabledB, sizeof(double), (size_t) n, f);
+//    double tabledB[n];
+    fread(b, sizeof(double), (size_t) n, f);
 
-    for (int i = 0; i < n; ++i) {
-        tabledB[i] = b[i];
-    }
+//    printf("\n%s\n", fileName);
+//    for (int i = 0; i < n; ++i) {
+//        tabledB[i] = b[i];
+//        b[i] = tabledB[i];
+//        printf("%f ", b[i]);
+//    }
+//    printf("\n");
 
     fclose(f);
 }
@@ -160,7 +191,7 @@ void pretrainDBN(DBN *this, int *input, double lr, int k, int epochs) {
         printf("Layer: %d\n", i);
         for(epoch = 0; epoch < epochs; ++epoch) { // training epochs
 
-//            printf("\nTraining epoch %d", epoch);
+            printf("\nTraining epoch %d", epoch);
             for(n=0; n<this->N; n++) { // input x1...xN
 
                 // initial input
@@ -241,20 +272,18 @@ void finetuneDBN(DBN *this, int *input, int *label, double lr, int epochs) {
             }
 
             train(&(this->logisticRegressionLayer), layer_input, train_Y, lr);
+            free(layer_input);
         }
         // lr *= 0.95;
     }
 
-    free(layer_input);
     free(train_X);
     free(train_Y);
 }
 
 void predictDBN(DBN *this, int *x, double *y) {
     int i, j, k;
-    for (i=0; i<10; i++) {
-        y[i] = 0;
-    }
+
     double *layer_input;
     // int prev_layer_input_size;
     double *prev_layer_input;
@@ -315,17 +344,18 @@ void predictDBN(DBN *this, int *x, double *y) {
 //    printf("\n-----------------------------\n");
 
     softmax(&(this->logisticRegressionLayer), y);
-
-    free(layer_input);
 }
 
 void persistLayer(char *fileName, double **W, int n, int m) {
     FILE *f = fopen(fileName, "wb");
 
+//    printf("\n%s\n", fileName);
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
+//            printf("%f ", W[i][j]);
             fwrite(&W[i][j], sizeof(double), (size_t) 1, f);
         }
+//        printf("\n");
     }
 
     fclose(f);
@@ -334,10 +364,13 @@ void persistLayer(char *fileName, double **W, int n, int m) {
 void persistB(char *fileName, double *b, int n) {
     FILE *f = fopen(fileName, "wb");
 
+//    printf("\n%s\n", fileName);
     double tabledB[n];
     for (int i = 0; i < n; ++i) {
         tabledB[i] = b[i];
+//        printf("%f ",tabledB[i]);
     }
+//    printf("\n");
 
     fwrite(tabledB, sizeof(double), (size_t) n, f);
     fclose(f);
@@ -442,8 +475,119 @@ void test_dbn(void) {
 
 }
 //
-//int main(void) {
-//    test_dbn();
+////TODO Remove
+//void trainDBNTest() {
+//
+//    srand(0);
+//
+//    int i, j;
+//
+//    double pretrain_lr = 0.1;
+//    int pretraining_epochs = 1000;
+//    int k = 1;
+//    double finetune_lr = 0.1;
+//    int finetune_epochs = 500;
+//
+//    int train_N = 6;
+//    int test_N = 4;
+//    int n_ins = 6;
+//    int n_outs = 2;
+//    int hidden_layer_sizes[] = {3, 3};
+//    int n_layers = sizeof(hidden_layer_sizes) / sizeof(hidden_layer_sizes[0]);
+//
+//    // training data
+//    //INFO keep sizes in sync with variables: trainingSetSize & inputDimension
+//    int train_X[6][6] = {
+//            {1, 1, 1, 0, 0, 0},
+//            {1, 0, 1, 0, 0, 0},
+//            {1, 1, 1, 0, 0, 0},
+//            {0, 0, 1, 1, 1, 0},
+//            {0, 0, 1, 1, 0, 0},
+//            {0, 0, 1, 1, 1, 0}
+//    };
+//
+//    //INFO keep sizes in sync with variables: trainingSetSize & inputDimension
+//    int train_Y[6][6] = {
+//            {1, 0},
+//            {1, 0},
+//            {1, 0},
+//            {0, 1},
+//            {0, 1},
+//            {0, 1}
+//    };
+//
+//    // construct DBN
+//    DBN dbn;
+//    buildDBNModel(&dbn, train_N, n_ins, hidden_layer_sizes, n_outs, n_layers);
+//
+//    // pretrain
+//    pretrainDBN(&dbn, *train_X, pretrain_lr, k, pretraining_epochs);
+//
+//
+//    // finetune
+////    loadDBNModel(&dbn, train_N, n_ins, hidden_layer_sizes, n_outs, n_layers);
+//    finetuneDBN(&dbn, *train_X, *train_Y, finetune_lr, finetune_epochs);
+//
+//    persistWeights(&dbn);
+//    printf("----------------------------------------");
+//    // destruct DBN
+//    freeDBNModel(&dbn);
+//}
+//
+//
+////TODO Remove
+//void testDBNTest() {
+//
+//    srand(0);
+//
+//    double pretrain_lr = 0.1;
+//    int pretraining_epochs = 1000;
+//    int k = 1;
+//    double finetune_lr = 0.1;
+//    int finetune_epochs = 500;
+//
+//    int train_N = 6;
+//    int test_N = 4;
+//    int n_ins = 6;
+//    int n_outs = 2;
+//    int hidden_layer_sizes[] = {3, 3};
+//    int n_layers = sizeof(hidden_layer_sizes) / sizeof(hidden_layer_sizes[0]);
+//
+//    // construct LogisticRegression
+//    DBN classifier;
+//    loadDBNModel(&classifier, train_N, n_ins, hidden_layer_sizes, n_outs, n_layers);
+//
+//    // test data
+//    int test_X[4][6] = {
+//            {1, 1, 0, 0, 0, 0},
+//            {1, 1, 1, 1, 0, 0},
+//            {0, 0, 0, 1, 1, 0},
+//            {0, 0, 1, 1, 1, 0}
+//    };
+//
+//    double test_Y[4][2];
+//
+//    // test
+//    for(int i=0; i< test_N; i++) {
+//        printf("\n-------- %d --------\n", i);
+//        predictDBN(&classifier, test_X[i], test_Y[i]);
+//        for(int j=0; j < n_outs; j++) {
+//            printf("%.5f ", test_Y[i][j]);
+//        }
+//        printf("\n-------- %d --------\n", i);
+//    }
+//
+//
+//    freeDBNModel(&classifier);
+//}
+//
+//
+//int main(void   ) {
+//
+//    trainDBNTest();
+//
+//    testDBNTest();
+//
 //    return 0;
 //}
 
