@@ -140,7 +140,6 @@ void softmax(LogisticRegression* logisticRegression, double* a) {
 
 void predict(LogisticRegression*logisticRegression, int* x, double* y) {
 
-    printImageInt(x);
 
     int inputSize = logisticRegression->inputDimension;
     int outputSize = logisticRegression->outputDimension;
