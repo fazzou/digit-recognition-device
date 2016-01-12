@@ -14,6 +14,8 @@
 #include <GL/glut.h>
 #include <math.h>
 #include "LogisticRegression.h"
+#include "Evaluator.h"
+#include <vector.h>
 //#include "DBN.h"
 
 #define RESIZED_WIDTH 28
@@ -60,6 +62,7 @@ void drawResizedDigit(ResizedDigit digit, int digitNumber, int width, int height
 int capture();
 int findAllInSet(float radius, int x, int y, int* data);
 char getSymbolFromCommandLine();
+int evaluate(char *digits, int length);
 
 void printImageInt(int* image) {
 
@@ -519,6 +522,7 @@ void processFrame() {
 
     //create table for resized digits
     ResizedDigit resizedDigitsArray[setsNo];
+    int results[setNo];
 
     for (i = 1; i<=setsNo; i++) {
         int* center = setParams(i, digitsArr);
@@ -535,17 +539,18 @@ void processFrame() {
         // for (int j = 0; j < NR_OF_LABELS; ++j) {
         //     printf("%f\n", results[j]);
         // }
-        int result = chooseBest(results);
-        printf("%d ", result);
+        int results[i-1] = chooseBest(results);
+        printf("%d ", results[i-1]);
         
-        free(center);
+        //evaluate(results, setsNo);
 
+        free(center);
     }
+
     noOfResizedSymbols = setsNo;
     printf("\n\n");
 
-
-
+    evaluate(resizedDigitsArray, setsNo);
 }
 
 void drawResizedDigit(ResizedDigit digit, int digitNumber, int width, int height) {
@@ -621,6 +626,39 @@ ResizedDigit resizeDigit(int massCenterX, int massCenterY,
     }
 
     return resizedDigit;
+}
+
+int evaluate(char *digits, int length){
+    vector<string> formula;
+    int i=0;
+
+    map<string, int> operators;
+    operators["-"] = 1;
+    operators["+"] = 1;
+    operators["*"] = 5;
+
+    while(i<length){
+        if(isOperator(digits[i])){
+            formula.push_back(digits[i]);
+            i++;
+        }
+        else{
+            string longerNumber=digits[i];
+            int k=i+1;
+            while(k<length && !isOperator(digits[k])){
+                longerNumber += digits[k];
+                k++;
+            }
+            formula.push_back(longerNumber);
+            i=k;
+        }
+    }
+
+    return convertAndEvaluate(formula, &operators);
+}
+
+bool isOperator(char character){
+    return character=='+' || character=="-" || character=="*";
 }
 
 int capture() {
@@ -701,8 +739,7 @@ int main(int  argc, char *argv[])
     return 0;
 }
 
-void
-Redraw(void) {
+void Redraw(void) {
 
     capture();
     GLfloat xsize, ysize;     /* Size of image */
@@ -718,33 +755,32 @@ Redraw(void) {
     ysize = Height * xsize /
             Width;
     if (ysize > Height)
-        {
+    {
         ysize = Height;
         xsize = Width * ysize /
                 Height;
-        }
+    }
 
-    xscale  = xsize / Width;
-    yscale  = ysize / Height;
+        xscale  = xsize / Width;
+        yscale  = ysize / Height;
 
-    xoffset = (Width - xsize) * 0.5;
-    yoffset = (Height - ysize) * 0.5;
+        xoffset = (Width - xsize) * 0.5;
+        yoffset = (Height - ysize) * 0.5;
 
-    glRasterPos2f(xoffset, yoffset);
-    glPixelZoom(xscale, yscale);
+        glRasterPos2f(xoffset, yoffset);
+        glPixelZoom(xscale, yscale);
 
-    glDrawPixels(Width,
-                 Height,
-                 GL_BGR_EXT, GL_UNSIGNED_BYTE, BitmapBits);
+        glDrawPixels(Width,
+                     Height,
+                     GL_BGR_EXT, GL_UNSIGNED_BYTE, BitmapBits);
 
-    glFinish();
+        glFinish();
     }
 
 
-void
-Resize(int width,  /* I - Width of window */
+void Resize(int width,  /* I - Width of window */
        int height) /* I - Height of window */
-    {
+{
     Width  = width;
     Height = height;
 
@@ -754,5 +790,5 @@ Resize(int width,  /* I - Width of window */
     glLoadIdentity();
     glOrtho(0.0, (GLfloat)width, 0.0, (GLfloat)height, -1.0, 1.0);
     glMatrixMode(GL_MODELVIEW);
-    }
+}
 
