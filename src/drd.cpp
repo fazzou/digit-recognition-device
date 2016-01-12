@@ -468,6 +468,10 @@ void processFrame() {
         for (x = 0; x<Width; x++) {
             float val = getfBit(x, y, workingBmp);
             setfBit(x, y, floor((val-min)*factor), workingBmp);
+            float newVal = (val-min)*factor;
+            newVal = newVal*(9.0/5.0);
+            if (newVal > 255) newVal = 255;
+            setfBit(x, y, floor(newVal), workingBg);
         }
     }
     //invert again
@@ -522,23 +526,23 @@ void processFrame() {
 
         //resize digit and display it on the screen
         resizedDigitsArray[i-1] = resizeDigit(center[0], center[1], (int)(center[2]*1.5), (int)(center[3]*1.5), RESIZED_WIDTH, RESIZED_HEIGHT);
-        if (i-1<32)
-            resizedSymbolsToSave[i-1] = resizeDigit(center[0], center[1], (int)(center[2]*1.5), (int)(center[3]*1.5), RESIZED_WIDTH, RESIZED_HEIGHT);
+        // if (i-1<32)
+        //     resizedSymbolsToSave[i-1] = resizeDigit(center[0], center[1], (int)(center[2]*1.5), (int)(center[3]*1.5), RESIZED_WIDTH, RESIZED_HEIGHT);
         drawResizedDigit(resizedDigitsArray[i-1], i-1, RESIZED_WIDTH, RESIZED_HEIGHT);
 
-        predict(&logisticRegression,  resizedDigitsArray[i-1].getPixelArray(), results);
-        for (int j = 0; j < NR_OF_LABELS; ++j) {
-            printf("%f\n", results[j]);
-        }
+        predict(&logisticRegression, resizedDigitsArray[i-1].getPixelArray(), results);
+
+        // for (int j = 0; j < NR_OF_LABELS; ++j) {
+        //     printf("%f\n", results[j]);
+        // }
         int result = chooseBest(results);
-        printf("%d", result);
-        printf("\n");
+        printf("%d ", result);
         
         free(center);
 
     }
     noOfResizedSymbols = setsNo;
-    // printf("\n\n");
+    printf("\n\n");
 
 
 
@@ -555,8 +559,39 @@ void drawResizedDigit(ResizedDigit digit, int digitNumber, int width, int height
 ResizedDigit resizeDigit(int massCenterX, int massCenterY,
                          int width, int height, int newWidth, int newHeight) {
     ResizedDigit resizedDigit;
+    int initialWidth = newWidth;
+    int initialHeight = newHeight;
+
+    for (int x = 0; x<initialWidth; x++) {
+        for (int y = 0; y<initialHeight; y++) {
+            resizedDigit.setDigitPixel(y, x, -1);
+        }
+    }
+
     double x_ratio = width/(double)newWidth;
     double y_ratio = height/(double)newHeight;
+
+    double both_ratio;
+    if (width > height) {
+        both_ratio = x_ratio;
+    } else {
+        both_ratio = y_ratio;
+    }
+    newWidth = (int)floor(width/both_ratio);
+    newHeight = (int)floor(height/both_ratio);
+    int x_offset = 0;
+    int y_offset = 0;
+
+    if (newWidth < 1 || newHeight < 1) {
+        newWidth = 1;
+        newHeight = 1;
+    }
+
+    if (newWidth > newHeight) {
+        y_offset = (newWidth - newHeight)/2;
+    } else {
+        x_offset = (newHeight - newWidth)/2;
+    }
 
     //coordinates of pixel which value should be used as value of pixel in resized image
     double pixelX;
@@ -569,11 +604,19 @@ ResizedDigit resizeDigit(int massCenterX, int massCenterY,
     //iterate over all the pixels of new image and set proper values
     for(int y=0;y<newHeight;y++){
         for(int x=0;x<newWidth;x++){
-            pixelX = floor(x*x_ratio + leftUpperX);
-            pixelY = floor(y*y_ratio + leftUpperY);
+            pixelX = floor(x*both_ratio + leftUpperX);
+            pixelY = floor(y*both_ratio + leftUpperY);
 
             //set value of new pixel as value of "closest neighbour" in original image
-            resizedDigit.setDigitPixel(y, x, (int)getfBit(pixelX, pixelY, workingBmp));
+            resizedDigit.setDigitPixel(y_offset + y, x_offset + x, (int)getfBit(pixelX, pixelY, workingBg));
+        }
+    }
+
+    for (int x = 0; x<initialWidth; x++) {
+        for (int y = 0; y<initialHeight; y++) {
+            if (resizedDigit.getValueOfPixel(y, x) == -1) {
+                resizedDigit.setDigitPixel(y, x, 0);
+            }
         }
     }
 
